@@ -1,0 +1,7 @@
+node_modules
+dist
+clips/
+public/clips/*.mp4
+public/clips/manifest.json
+YESSRO.m4a
+*.local
