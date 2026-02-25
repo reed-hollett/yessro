@@ -20,6 +20,27 @@
         <button class="sidebar-btn" data-action="invert" aria-label="Invert colors">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="3" x2="21" y2="21"/></svg>
         </button>
+        <button class="sidebar-btn" data-action="edge" aria-label="Edge detect">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="12,2 22,20 2,20"/></svg>
+        </button>
+        <button class="sidebar-btn" data-action="timecode" aria-label="Timecode">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="4" width="20" height="16" rx="2"/><line x1="8" y1="4" x2="8" y2="20"/><line x1="16" y1="4" x2="16" y2="20"/><line x1="2" y1="12" x2="22" y2="12"/></svg>
+        </button>
+        <button class="sidebar-btn" data-action="mosaic" aria-label="Pixel mosaic">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+        </button>
+        <button class="sidebar-btn" data-action="strobe" aria-label="Strobe">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="13,2 3,14 12,14 11,22 21,10 12,10"/></svg>
+        </button>
+        <button class="sidebar-btn" data-action="posterize" aria-label="Posterize">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M12 2v20"/><path d="M2 12h20"/></svg>
+        </button>
+        <button class="sidebar-btn" data-action="mirror" aria-label="Mirror">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="12" y1="2" x2="12" y2="22" stroke-dasharray="2 2"/><polygon points="5,6 10,12 5,18"/><polygon points="19,6 14,12 19,18"/></svg>
+        </button>
+        <button class="sidebar-btn" data-action="zoom" aria-label="Zoom crop">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+        </button>
       </div>
       <div id="transport">
         <button id="transport-playpause">&#9616;&#9616;</button>
@@ -29,6 +50,18 @@
         </div>
         <span id="transport-duration">0:00</span>
         <button id="transport-fx">FX</button>
+      </div>
+      <div id="fx-dialog">
+        <div class="fx-row"><kbd>1</kbd><span>Tracking overlay</span></div>
+        <div class="fx-row"><kbd>2</kbd><span>Threshold overlay</span></div>
+        <div class="fx-row"><kbd>3</kbd><span>Invert + desaturate</span></div>
+        <div class="fx-row"><kbd>4</kbd><span>Edge detect</span></div>
+        <div class="fx-row"><kbd>5</kbd><span>Timecode</span></div>
+        <div class="fx-row"><kbd>6</kbd><span>Pixel mosaic</span></div>
+        <div class="fx-row"><kbd>7</kbd><span>Strobe</span></div>
+        <div class="fx-row"><kbd>8</kbd><span>Posterize</span></div>
+        <div class="fx-row"><kbd>9</kbd><span>Mirror</span></div>
+        <div class="fx-row"><kbd>0</kbd><span>Zoom crop</span></div>
       </div>
     </div>
     <script type="module" src="/src/main.ts"></script>
