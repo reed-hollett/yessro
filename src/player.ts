@@ -1,3 +1,4 @@
+import Hls from 'hls.js';
 import { config } from './config';
 
 /**
@@ -71,18 +72,49 @@ export class VideoPlayer {
   }
 
   private loadClip(video: HTMLVideoElement, clipUrl: string) {
-    // Support both full URLs (Mux) and local filenames
-    video.src = clipUrl.startsWith('http') ? clipUrl : `/clips/${clipUrl}`;
+    const url = clipUrl.startsWith('http') ? clipUrl : `/clips/${clipUrl}`;
     video.crossOrigin = 'anonymous';
-    video.load();
 
-    // Seek to a random point once loaded for variety
-    video.addEventListener('loadedmetadata', () => {
-      if (video.duration > 2) {
-        video.currentTime = Math.random() * (video.duration - 2);
-      }
-      video.play().catch(() => {});
-    }, { once: true });
+    // Destroy any previous HLS instance on this element
+    const prev = (video as unknown as { _hls?: Hls })._hls;
+    if (prev) {
+      prev.destroy();
+      (video as unknown as { _hls?: Hls })._hls = undefined;
+    }
+
+    if (url.endsWith('.m3u8') && Hls.isSupported()) {
+      // Use hls.js for Chrome/Firefox
+      const hls = new Hls({ enableWorker: false, lowLatencyMode: true });
+      hls.loadSource(url);
+      hls.attachMedia(video);
+      hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        if (video.duration > 2) {
+          video.currentTime = Math.random() * (video.duration - 2);
+        }
+        video.play().catch(() => {});
+      });
+      (video as unknown as { _hls?: Hls })._hls = hls;
+    } else if (url.endsWith('.m3u8') && video.canPlayType('application/vnd.apple.mpegurl')) {
+      // Safari plays HLS natively
+      video.src = url;
+      video.load();
+      video.addEventListener('loadedmetadata', () => {
+        if (video.duration > 2) {
+          video.currentTime = Math.random() * (video.duration - 2);
+        }
+        video.play().catch(() => {});
+      }, { once: true });
+    } else {
+      // Direct mp4
+      video.src = url;
+      video.load();
+      video.addEventListener('loadedmetadata', () => {
+        if (video.duration > 2) {
+          video.currentTime = Math.random() * (video.duration - 2);
+        }
+        video.play().catch(() => {});
+      }, { once: true });
+    }
   }
 
   /**

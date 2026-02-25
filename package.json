@@ -10,7 +10,11 @@
     "convert": "bash scripts/convert-clips.sh"
   },
   "devDependencies": {
+    "@mux/mux-node": "^12.8.1",
     "typescript": "~5.7.0",
     "vite": "^6.0.0"
+  },
+  "dependencies": {
+    "hls.js": "^1.6.15"
   }
 }
