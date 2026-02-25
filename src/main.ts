@@ -38,8 +38,16 @@ playBtn.addEventListener('click', async () => {
   loading.style.display = 'block';
 
   try {
-    // 1. Create audio context (must be after user gesture)
+    // 1. Create audio context and unlock it (must be before any await on iOS)
     const audioCtx = new AudioContext();
+    await audioCtx.resume();
+
+    // Play a silent buffer to fully unlock audio on iOS
+    const silent = audioCtx.createBuffer(1, 1, audioCtx.sampleRate);
+    const silentSrc = audioCtx.createBufferSource();
+    silentSrc.buffer = silent;
+    silentSrc.connect(audioCtx.destination);
+    silentSrc.start();
 
     // 2. Fetch and decode the song
     loading.textContent = 'Loading song...';
@@ -87,6 +95,7 @@ playBtn.addEventListener('click', async () => {
     };
 
     // 6. Start audio playback (cap at 2:03)
+    if (audioCtx.state !== 'running') await audioCtx.resume();
     const maxDuration = 123; // 2:03
     const source = audioCtx.createBufferSource();
     source.buffer = audioBuffer;
