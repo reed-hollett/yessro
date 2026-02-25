@@ -3,7 +3,6 @@ import { config } from './config';
 import { detectBeats } from './beat-detect';
 import { VideoPlayer } from './player';
 
-const app = document.getElementById('app')!;
 const playBtn = document.getElementById('play-btn')!;
 const info = document.getElementById('info')!;
 const loading = document.getElementById('loading')!;
