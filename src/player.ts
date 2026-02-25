@@ -1,19 +1,25 @@
 import Hls from 'hls.js';
 import { config } from './config';
 
+const POOL_SIZE = 6; // preload this many clips ahead
+
+interface PoolEntry {
+  video: HTMLVideoElement;
+  hls: Hls | null;
+  ready: boolean;
+}
+
 /**
- * Double-buffer video player that cuts on the beat.
- *
- * Two <video> elements are stacked. While one plays visibly,
- * the other preloads the next clip. On each beat, they swap.
+ * Pooled video player that pre-buffers multiple clips ahead of time.
+ * On each beat-cut, it promotes the next ready clip and starts
+ * loading a new one at the back of the queue.
  */
 export class VideoPlayer {
-  private videoA: HTMLVideoElement;
-  private videoB: HTMLVideoElement;
-  private active: HTMLVideoElement;
-  private standby: HTMLVideoElement;
+  private container: HTMLElement;
+  private pool: PoolEntry[] = [];
+  private activeIndex = 0;
   private clips: string[] = [];
-  private clipIndex = 0;
+  private clipCursor = 0;
   private beats: number[] = [];
   private beatIndex = 0;
   private nextCutBeat = 0;
@@ -23,16 +29,10 @@ export class VideoPlayer {
   private running = false;
 
   constructor(container: HTMLElement) {
-    this.videoA = this.createVideoElement();
-    this.videoB = this.createVideoElement();
-    container.appendChild(this.videoA);
-    container.appendChild(this.videoB);
-
-    this.active = this.videoA;
-    this.standby = this.videoB;
+    this.container = container;
   }
 
-  private createVideoElement(): HTMLVideoElement {
+  private createEntry(): PoolEntry {
     const v = document.createElement('video');
     v.muted = true;
     v.playsInline = true;
@@ -40,103 +40,103 @@ export class VideoPlayer {
     v.loop = true;
     v.className = 'clip';
     v.style.opacity = '0';
-    return v;
+    this.container.appendChild(v);
+    return { video: v, hls: null, ready: false };
   }
 
-  /**
-   * Initialize with clip filenames and beat timestamps.
-   */
   init(allClips: string[], beats: number[], audioCtx: AudioContext) {
     this.audioCtx = audioCtx;
     this.beats = beats;
 
-    // Randomly select clips for this session
     const shuffled = [...allClips].sort(() => Math.random() - 0.5);
     this.clips = shuffled.slice(0, Math.min(config.clipCount, shuffled.length));
-    this.clipIndex = 0;
+    this.clipCursor = 0;
     this.beatIndex = 0;
     this.nextCutBeat = this.rollCutLength();
 
-    // Preload first clip into the active element
-    this.loadClip(this.active, this.nextClip());
-    this.active.style.opacity = '1';
+    // Create pool and start preloading all slots
+    for (let i = 0; i < POOL_SIZE; i++) {
+      const entry = this.createEntry();
+      this.pool.push(entry);
+      this.loadEntry(entry, this.advanceClip());
+    }
 
-    // Preload second clip into standby
-    this.loadClip(this.standby, this.nextClip());
+    // Show the first one immediately
+    this.activeIndex = 0;
+    this.pool[0].video.style.opacity = '1';
   }
 
-  private nextClip(): string {
-    const clip = this.clips[this.clipIndex % this.clips.length];
-    this.clipIndex++;
+  private advanceClip(): string {
+    const clip = this.clips[this.clipCursor % this.clips.length];
+    this.clipCursor++;
     return clip;
   }
 
-  private loadClip(video: HTMLVideoElement, clipUrl: string) {
+  private loadEntry(entry: PoolEntry, clipUrl: string) {
     const url = clipUrl.startsWith('http') ? clipUrl : `/clips/${clipUrl}`;
+    const video = entry.video;
     video.crossOrigin = 'anonymous';
+    entry.ready = false;
 
-    // Destroy any previous HLS instance on this element
-    const prev = (video as unknown as { _hls?: Hls })._hls;
-    if (prev) {
-      prev.destroy();
-      (video as unknown as { _hls?: Hls })._hls = undefined;
+    // Destroy previous HLS instance
+    if (entry.hls) {
+      entry.hls.destroy();
+      entry.hls = null;
     }
 
+    const onReady = () => {
+      entry.ready = true;
+      video.play().catch(() => {});
+    };
+
     if (url.endsWith('.m3u8') && Hls.isSupported()) {
-      // Use hls.js for Chrome/Firefox
-      const hls = new Hls({ enableWorker: false, lowLatencyMode: true });
+      const hls = new Hls({ enableWorker: false, maxBufferLength: 10 });
       hls.loadSource(url);
       hls.attachMedia(video);
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
         if (video.duration > 2) {
           video.currentTime = Math.random() * (video.duration - 2);
         }
-        video.play().catch(() => {});
+        onReady();
       });
-      (video as unknown as { _hls?: Hls })._hls = hls;
+      entry.hls = hls;
     } else if (url.endsWith('.m3u8') && video.canPlayType('application/vnd.apple.mpegurl')) {
-      // Safari plays HLS natively
       video.src = url;
       video.load();
       video.addEventListener('loadedmetadata', () => {
         if (video.duration > 2) {
           video.currentTime = Math.random() * (video.duration - 2);
         }
-        video.play().catch(() => {});
+        onReady();
       }, { once: true });
     } else {
-      // Direct mp4
       video.src = url;
       video.load();
       video.addEventListener('loadedmetadata', () => {
         if (video.duration > 2) {
           video.currentTime = Math.random() * (video.duration - 2);
         }
-        video.play().catch(() => {});
+        onReady();
       }, { once: true });
     }
   }
 
-  /**
-   * Start the beat-synced playback loop.
-   */
   start(audioStartTime: number) {
     this.audioStartTime = audioStartTime;
     this.running = true;
-    this.active.play().catch(() => {});
+    this.pool[this.activeIndex].video.play().catch(() => {});
     this.tick();
   }
 
   stop() {
     this.running = false;
     cancelAnimationFrame(this.rafId);
-    this.videoA.pause();
-    this.videoB.pause();
+    for (const entry of this.pool) {
+      entry.video.pause();
+      if (entry.hls) entry.hls.destroy();
+    }
   }
 
-  /**
-   * Pick a random cut length using weighted distribution from config.
-   */
   private rollCutLength(): number {
     const weights = config.cutWeights;
     const totalWeight = weights.reduce((sum, [, w]) => sum + w, 0);
@@ -153,7 +153,6 @@ export class VideoPlayer {
 
     const elapsed = this.audioCtx.currentTime - this.audioStartTime;
 
-    // Advance through beats we've passed
     while (this.beatIndex < this.beats.length && elapsed >= this.beats[this.beatIndex]) {
       this.beatIndex++;
       this.nextCutBeat--;
@@ -168,17 +167,20 @@ export class VideoPlayer {
   };
 
   private swap() {
-    // Instant cut: hide active, show standby
-    this.active.style.opacity = '0';
-    this.standby.style.opacity = '1';
-    this.standby.play().catch(() => {});
+    const current = this.pool[this.activeIndex];
+    const nextIndex = (this.activeIndex + 1) % POOL_SIZE;
+    const next = this.pool[nextIndex];
 
-    // Swap references
-    const prev = this.active;
-    this.active = this.standby;
-    this.standby = prev;
+    // Hide current, show next (only if it's ready — otherwise skip this cut)
+    if (!next.ready) return;
 
-    // Preload next clip on the now-hidden element
-    this.loadClip(this.standby, this.nextClip());
+    current.video.style.opacity = '0';
+    next.video.style.opacity = '1';
+    next.video.play().catch(() => {});
+
+    // Recycle the old active: load a new clip into it
+    this.loadEntry(current, this.advanceClip());
+
+    this.activeIndex = nextIndex;
   }
 }
