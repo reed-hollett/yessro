@@ -1,7 +1,7 @@
 import Hls from 'hls.js';
 import { config } from './config';
 
-const POOL_SIZE = 6; // preload this many clips ahead
+const DEFAULT_POOL_SIZE = 6;
 
 interface PoolEntry {
   video: HTMLVideoElement;
@@ -16,6 +16,7 @@ interface PoolEntry {
  */
 export class VideoPlayer {
   private container: HTMLElement;
+  private poolSize: number;
   private pool: PoolEntry[] = [];
   private activeIndex = 0;
   private clips: string[] = [];
@@ -28,8 +29,15 @@ export class VideoPlayer {
   private rafId = 0;
   private running = false;
 
-  constructor(container: HTMLElement) {
+  onSwap: (() => void) | null = null;
+
+  constructor(container: HTMLElement, poolSize = DEFAULT_POOL_SIZE) {
     this.container = container;
+    this.poolSize = poolSize;
+  }
+
+  get activeVideo(): HTMLVideoElement | null {
+    return this.pool[this.activeIndex]?.video ?? null;
   }
 
   private createEntry(): PoolEntry {
@@ -39,7 +47,7 @@ export class VideoPlayer {
     v.preload = 'auto';
     v.loop = true;
     v.className = 'clip';
-    v.style.opacity = '0';
+    v.style.visibility = 'hidden';
     this.container.appendChild(v);
     return { video: v, hls: null, ready: false };
   }
@@ -55,7 +63,7 @@ export class VideoPlayer {
     this.nextCutBeat = this.rollCutLength();
 
     // Create pool and start preloading all slots
-    for (let i = 0; i < POOL_SIZE; i++) {
+    for (let i = 0; i < this.poolSize; i++) {
       const entry = this.createEntry();
       this.pool.push(entry);
       this.loadEntry(entry, this.advanceClip());
@@ -63,7 +71,7 @@ export class VideoPlayer {
 
     // Show the first one immediately
     this.activeIndex = 0;
-    this.pool[0].video.style.opacity = '1';
+    this.pool[0].video.style.visibility = 'visible';
   }
 
   private advanceClip(): string {
@@ -128,6 +136,20 @@ export class VideoPlayer {
     this.tick();
   }
 
+  pause() {
+    this.running = false;
+    cancelAnimationFrame(this.rafId);
+    for (const entry of this.pool) {
+      entry.video.pause();
+    }
+  }
+
+  resume() {
+    this.running = true;
+    this.pool[this.activeIndex].video.play().catch(() => {});
+    this.tick();
+  }
+
   stop() {
     this.running = false;
     cancelAnimationFrame(this.rafId);
@@ -168,19 +190,20 @@ export class VideoPlayer {
 
   private swap() {
     const current = this.pool[this.activeIndex];
-    const nextIndex = (this.activeIndex + 1) % POOL_SIZE;
+    const nextIndex = (this.activeIndex + 1) % this.poolSize;
     const next = this.pool[nextIndex];
 
     // Hide current, show next (only if it's ready — otherwise skip this cut)
     if (!next.ready) return;
 
-    current.video.style.opacity = '0';
-    next.video.style.opacity = '1';
+    current.video.style.visibility = 'hidden';
+    next.video.style.visibility = 'visible';
     next.video.play().catch(() => {});
 
     // Recycle the old active: load a new clip into it
     this.loadEntry(current, this.advanceClip());
 
     this.activeIndex = nextIndex;
+    this.onSwap?.();
   }
 }

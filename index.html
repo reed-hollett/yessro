@@ -10,7 +10,26 @@
       <div id="video-container"></div>
       <button id="play-btn">Play</button>
       <div id="loading"></div>
-      <div id="info"></div>
+      <div id="sidebar">
+        <button class="sidebar-btn" data-action="track" aria-label="Tracking overlay">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 8V2h6"/><path d="M22 8V2h-6"/><path d="M2 16v6h6"/><path d="M22 16v6h-6"/><circle cx="12" cy="12" r="3"/></svg>
+        </button>
+        <button class="sidebar-btn" data-action="threshold" aria-label="Threshold overlay">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 0 1 0 20" fill="currentColor"/></svg>
+        </button>
+        <button class="sidebar-btn" data-action="invert" aria-label="Invert colors">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="3" x2="21" y2="21"/></svg>
+        </button>
+      </div>
+      <div id="transport">
+        <button id="transport-playpause">&#9616;&#9616;</button>
+        <span id="transport-time">0:00</span>
+        <div id="transport-track">
+          <div id="transport-progress"></div>
+        </div>
+        <span id="transport-duration">0:00</span>
+        <button id="transport-fx">FX</button>
+      </div>
     </div>
     <script type="module" src="/src/main.ts"></script>
   </body>
