@@ -1,13 +1,14 @@
 /**
- * Sobel edge-detection overlay.
- * Samples the active video, runs a Sobel filter, renders white edges
- * on a transparent background at quarter viewport size.
+ * Posterized edge-detection overlay.
+ * Samples the active video, posterizes the colors to a few discrete levels,
+ * then burns Sobel edges as dark outlines — screen-print / risograph look.
  */
 
 import type { VideoPlayer } from './player';
 
-const EDGE_THRESHOLD = 60;
+const EDGE_THRESHOLD = 50;
 const SAMPLE_SCALE = 0.4;
+const POSTERIZE_LEVELS = 4;
 
 export class EdgeOverlay {
   private canvas: HTMLCanvasElement;
@@ -37,23 +38,20 @@ export class EdgeOverlay {
 
   private resize = () => {
     const dpr = window.devicePixelRatio || 1;
-    const qw = Math.floor(window.innerWidth / 2);
-    const qh = Math.floor(window.innerHeight / 2);
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
 
-    this.canvas.width = qw * dpr;
-    this.canvas.height = qh * dpr;
-    this.canvas.style.width = qw + 'px';
-    this.canvas.style.height = qh + 'px';
+    this.canvas.width = vw * dpr;
+    this.canvas.height = vh * dpr;
+    this.canvas.style.width = vw + 'px';
+    this.canvas.style.height = vh + 'px';
 
-    this.offscreen.width = Math.floor(qw * SAMPLE_SCALE);
-    this.offscreen.height = Math.floor(qh * SAMPLE_SCALE);
+    this.offscreen.width = Math.floor(vw * SAMPLE_SCALE);
+    this.offscreen.height = Math.floor(vh * SAMPLE_SCALE);
   };
 
   shuffle() {
-    const qw = Math.floor(window.innerWidth / 2);
-    const qh = Math.floor(window.innerHeight / 2);
-    this.canvas.style.left = Math.floor(Math.random() * (window.innerWidth - qw)) + 'px';
-    this.canvas.style.top = Math.floor(Math.random() * (window.innerHeight - qh)) + 'px';
+    // full-screen — no repositioning needed
   }
 
   toggle(): boolean {
@@ -104,17 +102,23 @@ export class EdgeOverlay {
 
       const src = this.offCtx.getImageData(0, 0, w, h);
       const sd = src.data;
-      const out = this.offCtx.createImageData(w, h);
-      const od = out.data;
+      const step = 255 / (POSTERIZE_LEVELS - 1);
 
-      // Convert to grayscale luminance buffer
+      // Grayscale buffer for Sobel
       const gray = new Uint8Array(w * h);
       for (let i = 0; i < gray.length; i++) {
         const j = i * 4;
         gray[i] = (sd[j] * 77 + sd[j + 1] * 150 + sd[j + 2] * 29) >> 8;
       }
 
-      // Sobel
+      // Posterize colors in-place
+      for (let i = 0; i < sd.length; i += 4) {
+        sd[i]     = Math.round(sd[i] / step) * step;
+        sd[i + 1] = Math.round(sd[i + 1] / step) * step;
+        sd[i + 2] = Math.round(sd[i + 2] / step) * step;
+      }
+
+      // Burn Sobel edges as dark outlines
       for (let y = 1; y < h - 1; y++) {
         for (let x = 1; x < w - 1; x++) {
           const i = y * w + x;
@@ -126,18 +130,17 @@ export class EdgeOverlay {
           const gy = -tl - 2 * tc - tr + bl + 2 * bc + br;
           const mag = Math.sqrt(gx * gx + gy * gy);
 
-          const pi = i * 4;
           if (mag > EDGE_THRESHOLD) {
-            const v = Math.min(255, Math.floor(mag));
-            od[pi] = od[pi + 1] = od[pi + 2] = v;
-            od[pi + 3] = v;
-          } else {
-            od[pi + 3] = 0;
+            const pi = i * 4;
+            const darken = Math.min(1, mag / 255);
+            sd[pi]     = Math.floor(sd[pi] * (1 - darken));
+            sd[pi + 1] = Math.floor(sd[pi + 1] * (1 - darken));
+            sd[pi + 2] = Math.floor(sd[pi + 2] * (1 - darken));
           }
         }
       }
 
-      this.offCtx.putImageData(out, 0, 0);
+      this.offCtx.putImageData(src, 0, 0);
 
       const ctx = this.ctx;
       ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);

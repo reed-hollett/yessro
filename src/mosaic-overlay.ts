@@ -8,7 +8,6 @@
 import type { VideoPlayer } from './player';
 
 const GRID_COLS = 32;
-const SAMPLE_SCALE = 0.5;
 
 export class MosaicOverlay {
   private canvas: HTMLCanvasElement;
@@ -38,24 +37,21 @@ export class MosaicOverlay {
 
   private resize = () => {
     const dpr = window.devicePixelRatio || 1;
-    const qw = Math.floor(window.innerWidth * SAMPLE_SCALE);
-    const qh = Math.floor(window.innerHeight * SAMPLE_SCALE);
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
 
-    this.canvas.width = qw * dpr;
-    this.canvas.height = qh * dpr;
-    this.canvas.style.width = qw + 'px';
-    this.canvas.style.height = qh + 'px';
+    this.canvas.width = vw * dpr;
+    this.canvas.height = vh * dpr;
+    this.canvas.style.width = vw + 'px';
+    this.canvas.style.height = vh + 'px';
 
-    const rows = Math.round(GRID_COLS * (qh / qw));
+    const rows = Math.round(GRID_COLS * (vh / vw));
     this.tiny.width = GRID_COLS;
     this.tiny.height = rows;
   };
 
   shuffle() {
-    const qw = Math.floor(window.innerWidth * SAMPLE_SCALE);
-    const qh = Math.floor(window.innerHeight * SAMPLE_SCALE);
-    this.canvas.style.left = Math.floor(Math.random() * (window.innerWidth - qw)) + 'px';
-    this.canvas.style.top = Math.floor(Math.random() * (window.innerHeight - qh)) + 'px';
+    // full-screen — no repositioning needed
   }
 
   toggle(): boolean {
@@ -89,14 +85,19 @@ export class MosaicOverlay {
       const tw = this.tiny.width;
       const th = this.tiny.height;
 
-      // Cover-fit video into tiny grid
+      // Cover-fit: crop video to match canvas aspect ratio
       const vw = video.videoWidth || tw;
       const vh = video.videoHeight || th;
-      const cr = tw / th;
-      const vr = vw / vh;
+      const canvasRatio = this.canvas.width / this.canvas.height;
+      const videoRatio = vw / vh;
       let sx = 0, sy = 0, sw = vw, sh = vh;
-      if (vr > cr) { sw = vh * cr; sx = (vw - sw) / 2; }
-      else { sh = vw / cr; sy = (vh - sh) / 2; }
+      if (videoRatio > canvasRatio) {
+        sw = vh * canvasRatio;
+        sx = (vw - sw) / 2;
+      } else {
+        sh = vw / canvasRatio;
+        sy = (vh - sh) / 2;
+      }
 
       this.tinyCtx.drawImage(video, sx, sy, sw, sh, 0, 0, tw, th);
 
