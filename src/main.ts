@@ -188,9 +188,8 @@ playBtn.addEventListener('click', async () => {
       if (e.key === '3') toggleInvert();
       if (e.key === '4') toggleTimecode();
       if (e.key === '5') toggleMosaic();
-      if (e.key === '6') togglePosterize();
-      if (e.key === '7') toggleMirror();
-      if (e.key === '8') toggleZoom();
+      if (e.key === '6') toggleMirror();
+      if (e.key === '7') toggleZoom();
     };
     window.addEventListener('keydown', handleKey);
 
@@ -231,17 +230,13 @@ playBtn.addEventListener('click', async () => {
       mosaic?.toggle();
       sidebarBtns[4].classList.toggle('active');
     };
-    const togglePosterize = () => {
-      videoContainer.classList.toggle('posterize');
-      sidebarBtns[5].classList.toggle('active');
-    };
     const toggleMirror = () => {
       videoContainer.classList.toggle('mirror');
-      sidebarBtns[6].classList.toggle('active');
+      sidebarBtns[5].classList.toggle('active');
     };
     const toggleZoom = () => {
       zoom?.toggle();
-      sidebarBtns[7].classList.toggle('active');
+      sidebarBtns[6].classList.toggle('active');
     };
 
     sidebarBtns[0].onclick = toggleTrack;
@@ -249,9 +244,8 @@ playBtn.addEventListener('click', async () => {
     sidebarBtns[2].onclick = toggleInvert;
     sidebarBtns[3].onclick = toggleTimecode;
     sidebarBtns[4].onclick = toggleMosaic;
-    sidebarBtns[5].onclick = togglePosterize;
-    sidebarBtns[6].onclick = toggleMirror;
-    sidebarBtns[7].onclick = toggleZoom;
+    sidebarBtns[5].onclick = toggleMirror;
+    sidebarBtns[6].onclick = toggleZoom;
 
     // Default on: tracking (1), threshold (2)
     toggleTrack();
@@ -271,7 +265,7 @@ playBtn.addEventListener('click', async () => {
       timecode = null;
       mosaic = null;
       zoom = null;
-      videoContainer.classList.remove('invert', 'posterize', 'mirror');
+      videoContainer.classList.remove('invert', 'mirror');
       window.removeEventListener('keydown', handleKey);
       sidebar.classList.remove('visible');
       sidebarBtns.forEach(b => { b.classList.remove('active'); b.onclick = null; });

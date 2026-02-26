@@ -8,6 +8,7 @@
 import type { VideoPlayer } from './player';
 
 const GRID_COLS = 32;
+const SAMPLE_SCALE = 0.5;
 
 export class MosaicOverlay {
   private canvas: HTMLCanvasElement;
@@ -37,21 +38,24 @@ export class MosaicOverlay {
 
   private resize = () => {
     const dpr = window.devicePixelRatio || 1;
-    const vw = window.innerWidth;
-    const vh = window.innerHeight;
+    const qw = Math.floor(window.innerWidth * SAMPLE_SCALE);
+    const qh = Math.floor(window.innerHeight * SAMPLE_SCALE);
 
-    this.canvas.width = vw * dpr;
-    this.canvas.height = vh * dpr;
-    this.canvas.style.width = vw + 'px';
-    this.canvas.style.height = vh + 'px';
+    this.canvas.width = qw * dpr;
+    this.canvas.height = qh * dpr;
+    this.canvas.style.width = qw + 'px';
+    this.canvas.style.height = qh + 'px';
 
-    const rows = Math.round(GRID_COLS * (vh / vw));
+    const rows = Math.round(GRID_COLS * (qh / qw));
     this.tiny.width = GRID_COLS;
     this.tiny.height = rows;
   };
 
   shuffle() {
-    // full-screen — no repositioning needed
+    const qw = Math.floor(window.innerWidth * SAMPLE_SCALE);
+    const qh = Math.floor(window.innerHeight * SAMPLE_SCALE);
+    this.canvas.style.left = Math.floor(Math.random() * (window.innerWidth - qw)) + 'px';
+    this.canvas.style.top = Math.floor(Math.random() * (window.innerHeight - qh)) + 'px';
   }
 
   toggle(): boolean {

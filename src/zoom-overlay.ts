@@ -52,9 +52,9 @@ export class ZoomOverlay {
     this.canvas.style.left = Math.floor(Math.random() * (window.innerWidth - qw)) + 'px';
     this.canvas.style.top = Math.floor(Math.random() * (window.innerHeight - qh)) + 'px';
 
-    // Random crop origin (0-1 range, draw() maps to available space)
-    this.cropX = Math.random();
-    this.cropY = Math.random();
+    // Crop origin biased toward center (0.3–0.7 range)
+    this.cropX = 0.3 + Math.random() * 0.4;
+    this.cropY = 0.3 + Math.random() * 0.4;
   }
 
   toggle(): boolean {
@@ -88,18 +88,23 @@ export class ZoomOverlay {
       const vw = video.videoWidth;
       const vh = video.videoHeight;
       const canvasRatio = this.canvas.width / this.canvas.height;
+      const videoRatio = vw / vh;
 
-      // Compute crop region matching the canvas aspect ratio
-      let sw: number, sh: number;
-      if (canvasRatio > vw / vh) {
-        sw = Math.floor(CROP_RATIO * vw);
-        sh = Math.floor(sw / canvasRatio);
+      // 1. Cover-fit: find the visible region (matches object-fit:cover)
+      let cvX = 0, cvY = 0, cvW = vw, cvH = vh;
+      if (videoRatio > canvasRatio) {
+        cvW = Math.floor(vh * canvasRatio);
+        cvX = Math.floor((vw - cvW) / 2);
       } else {
-        sh = Math.floor(CROP_RATIO * vh);
-        sw = Math.floor(sh * canvasRatio);
+        cvH = Math.floor(vw / canvasRatio);
+        cvY = Math.floor((vh - cvH) / 2);
       }
-      const sx = Math.floor(this.cropX * (vw - sw));
-      const sy = Math.floor(this.cropY * (vh - sh));
+
+      // 2. Crop from within the cover-fit region
+      const sw = Math.floor(CROP_RATIO * cvW);
+      const sh = Math.floor(CROP_RATIO * cvH);
+      const sx = cvX + Math.floor(this.cropX * (cvW - sw));
+      const sy = cvY + Math.floor(this.cropY * (cvH - sh));
 
       const ctx = this.ctx;
       ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
