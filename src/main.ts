@@ -41,7 +41,6 @@ function formatTime(s: number): string {
 
 function getLaneCount(): number {
   const ratio = window.innerWidth / window.innerHeight;
-  if (ratio >= 1.5) return 3;
   if (ratio >= 1.0) return 2;
   return 1;
 }
