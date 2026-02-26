@@ -36,8 +36,10 @@ function formatTime(s: number): string {
 }
 
 function getLaneCount(): number {
-  const ratio = window.innerWidth / window.innerHeight;
-  if (ratio >= 1.0) return 3;
+  const w = window.innerWidth;
+  const ratio = w / window.innerHeight;
+  if (ratio >= 1.0 && w >= 1200) return 3;
+  if (ratio >= 1.0 && w >= 768) return 2;
   return 1;
 }
 
