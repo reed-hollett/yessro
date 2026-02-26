@@ -5,10 +5,8 @@ import { VideoPlayer } from './player';
 import { TrackingOverlay } from './tracking-overlay';
 import { ThresholdOverlay } from './threshold-overlay';
 
-import { EdgeOverlay } from './edge-overlay';
 import { TimecodeOverlay } from './timecode-overlay';
 import { MosaicOverlay } from './mosaic-overlay';
-import { StrobeOverlay } from './strobe-overlay';
 import { ZoomOverlay } from './zoom-overlay';
 
 const playBtn = document.getElementById('play-btn')!;
@@ -26,10 +24,8 @@ let players: VideoPlayer[] = [];
 let overlay: TrackingOverlay | null = null;
 let threshold: ThresholdOverlay | null = null;
 
-let edge: EdgeOverlay | null = null;
 let timecode: TimecodeOverlay | null = null;
 let mosaic: MosaicOverlay | null = null;
-let strobe: StrobeOverlay | null = null;
 let zoom: ZoomOverlay | null = null;
 let paused = false;
 
@@ -41,7 +37,7 @@ function formatTime(s: number): string {
 
 function getLaneCount(): number {
   const ratio = window.innerWidth / window.innerHeight;
-  if (ratio >= 1.0) return 2;
+  if (ratio >= 1.0) return 3;
   return 1;
 }
 
@@ -110,9 +106,7 @@ playBtn.addEventListener('click', async () => {
     const app = document.getElementById('app')!;
     overlay = new TrackingOverlay(app);
     threshold = new ThresholdOverlay(app, players[0]);
-    edge = new EdgeOverlay(app, players[0]);
     mosaic = new MosaicOverlay(app, players[0]);
-    strobe = new StrobeOverlay(app);
     zoom = new ZoomOverlay(app, players[0]);
 
     // When any lane swaps, it becomes the active (saturated) one
@@ -122,9 +116,7 @@ playBtn.addEventListener('click', async () => {
         if (i === 0) {
           overlay?.shuffle();
           threshold?.shuffle();
-          edge?.shuffle();
           mosaic?.shuffle();
-          strobe?.flash();
           zoom?.shuffle();
         }
       };
@@ -182,13 +174,11 @@ playBtn.addEventListener('click', async () => {
       if (e.key === '1') toggleTrack();
       if (e.key === '2') toggleThresh();
       if (e.key === '3') toggleInvert();
-      if (e.key === '4') toggleEdge();
-      if (e.key === '5') toggleTimecode();
-      if (e.key === '6') toggleMosaic();
-      if (e.key === '7') toggleStrobe();
-      if (e.key === '8') togglePosterize();
-      if (e.key === '9') toggleMirror();
-      if (e.key === '0') toggleZoom();
+      if (e.key === '4') toggleTimecode();
+      if (e.key === '5') toggleMosaic();
+      if (e.key === '6') togglePosterize();
+      if (e.key === '7') toggleMirror();
+      if (e.key === '8') toggleZoom();
     };
     window.addEventListener('keydown', handleKey);
 
@@ -221,45 +211,35 @@ playBtn.addEventListener('click', async () => {
       videoContainer.classList.toggle('invert');
       sidebarBtns[2].classList.toggle('active');
     };
-    const toggleEdge = () => {
-      edge?.toggle();
-      sidebarBtns[3].classList.toggle('active');
-    };
     const toggleTimecode = () => {
       timecode?.toggle();
-      sidebarBtns[4].classList.toggle('active');
+      sidebarBtns[3].classList.toggle('active');
     };
     const toggleMosaic = () => {
       mosaic?.toggle();
-      sidebarBtns[5].classList.toggle('active');
-    };
-    const toggleStrobe = () => {
-      strobe?.toggle();
-      sidebarBtns[6].classList.toggle('active');
+      sidebarBtns[4].classList.toggle('active');
     };
     const togglePosterize = () => {
       videoContainer.classList.toggle('posterize');
-      sidebarBtns[7].classList.toggle('active');
+      sidebarBtns[5].classList.toggle('active');
     };
     const toggleMirror = () => {
       videoContainer.classList.toggle('mirror');
-      sidebarBtns[8].classList.toggle('active');
+      sidebarBtns[6].classList.toggle('active');
     };
     const toggleZoom = () => {
       zoom?.toggle();
-      sidebarBtns[9].classList.toggle('active');
+      sidebarBtns[7].classList.toggle('active');
     };
 
     sidebarBtns[0].onclick = toggleTrack;
     sidebarBtns[1].onclick = toggleThresh;
     sidebarBtns[2].onclick = toggleInvert;
-    sidebarBtns[3].onclick = toggleEdge;
-    sidebarBtns[4].onclick = toggleTimecode;
-    sidebarBtns[5].onclick = toggleMosaic;
-    sidebarBtns[6].onclick = toggleStrobe;
-    sidebarBtns[7].onclick = togglePosterize;
-    sidebarBtns[8].onclick = toggleMirror;
-    sidebarBtns[9].onclick = toggleZoom;
+    sidebarBtns[3].onclick = toggleTimecode;
+    sidebarBtns[4].onclick = toggleMosaic;
+    sidebarBtns[5].onclick = togglePosterize;
+    sidebarBtns[6].onclick = toggleMirror;
+    sidebarBtns[7].onclick = toggleZoom;
 
     // Default on: tracking (1), threshold (2)
     toggleTrack();
@@ -271,17 +251,13 @@ playBtn.addEventListener('click', async () => {
       players.forEach(p => p.stop());
       overlay?.destroy();
       threshold?.destroy();
-      edge?.destroy();
       timecode?.destroy();
       mosaic?.destroy();
-      strobe?.destroy();
       zoom?.destroy();
       overlay = null;
       threshold = null;
-      edge = null;
       timecode = null;
       mosaic = null;
-      strobe = null;
       zoom = null;
       videoContainer.classList.remove('invert', 'posterize', 'mirror');
       window.removeEventListener('keydown', handleKey);

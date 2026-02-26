@@ -52,9 +52,9 @@ export class ZoomOverlay {
     this.canvas.style.left = Math.floor(Math.random() * (window.innerWidth - qw)) + 'px';
     this.canvas.style.top = Math.floor(Math.random() * (window.innerHeight - qh)) + 'px';
 
-    // Random crop origin
-    this.cropX = Math.random() * (1 - CROP_RATIO);
-    this.cropY = Math.random() * (1 - CROP_RATIO);
+    // Random crop origin (0-1 range, draw() maps to available space)
+    this.cropX = Math.random();
+    this.cropY = Math.random();
   }
 
   toggle(): boolean {
@@ -87,10 +87,19 @@ export class ZoomOverlay {
     if (video && video.readyState >= 2) {
       const vw = video.videoWidth;
       const vh = video.videoHeight;
-      const sx = Math.floor(this.cropX * vw);
-      const sy = Math.floor(this.cropY * vh);
-      const sw = Math.floor(CROP_RATIO * vw);
-      const sh = Math.floor(CROP_RATIO * vh);
+      const canvasRatio = this.canvas.width / this.canvas.height;
+
+      // Compute crop region matching the canvas aspect ratio
+      let sw: number, sh: number;
+      if (canvasRatio > vw / vh) {
+        sw = Math.floor(CROP_RATIO * vw);
+        sh = Math.floor(sw / canvasRatio);
+      } else {
+        sh = Math.floor(CROP_RATIO * vh);
+        sw = Math.floor(sh * canvasRatio);
+      }
+      const sx = Math.floor(this.cropX * (vw - sw));
+      const sy = Math.floor(this.cropY * (vh - sh));
 
       const ctx = this.ctx;
       ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
