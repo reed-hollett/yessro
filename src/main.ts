@@ -95,12 +95,6 @@ playBtn.addEventListener('click', async () => {
       players.push(p);
     }
 
-    // Start with first lane at full saturation
-    lanes[0]?.classList.add('active-lane');
-
-    const setActiveLane = (index: number) => {
-      lanes.forEach((l, j) => l.classList.toggle('active-lane', j === index));
-    };
 
     // 5b. Initialize overlays
     const app = document.getElementById('app')!;
@@ -109,10 +103,28 @@ playBtn.addEventListener('click', async () => {
     mosaic = new MosaicOverlay(app, players[0]);
     zoom = new ZoomOverlay(app, players[0]);
 
+    // Lane visibility & saturation: randomly hide lanes and add color
+    const shuffleLaneVisibility = () => {
+      if (laneCount <= 1) return;
+      const roll = Math.random();
+      if (roll < 0.08) {
+        // Rare: only 1 lane visible
+        const keep = Math.floor(Math.random() * laneCount);
+        lanes.forEach((l, i) => { l.style.opacity = i === keep ? '1' : '0'; });
+      } else if (roll < 0.35) {
+        // Sometimes: hide 1 lane
+        const hide = Math.floor(Math.random() * laneCount);
+        lanes.forEach((l, i) => { l.style.opacity = i === hide ? '0' : '1'; });
+      } else {
+        // Default: all visible
+        lanes.forEach(l => { l.style.opacity = '1'; });
+      }
+    };
+
     // When any lane swaps, it becomes the active (saturated) one
     players.forEach((p, i) => {
       p.onSwap = () => {
-        setActiveLane(i);
+        shuffleLaneVisibility();
         if (i === 0) {
           overlay?.shuffle();
           threshold?.shuffle();

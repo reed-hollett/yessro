@@ -34,13 +34,6 @@ html, body {
   min-width: 0;
   height: 100%;
   overflow: hidden;
-  filter: grayscale(1);
-  transition: filter 0.15s ease;
-}
-
-.video-lane.active-lane,
-.video-lane:only-child {
-  filter: none;
 }
 
 .clip {
