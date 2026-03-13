@@ -75,7 +75,12 @@ export class VideoPlayer {
   }
 
   private advanceClip(): string {
-    const clip = this.clips[this.clipCursor % this.clips.length];
+    // Reshuffle when we've been through all clips
+    if (this.clipCursor >= this.clips.length) {
+      this.clipCursor = 0;
+      this.clips.sort(() => Math.random() - 0.5);
+    }
+    const clip = this.clips[this.clipCursor];
     this.clipCursor++;
     return clip;
   }
@@ -97,6 +102,25 @@ export class VideoPlayer {
       video.play().catch(() => {});
     };
 
+    // On error, skip this clip and try the next one
+    const onError = () => {
+      console.warn('Clip failed to load, skipping:', url);
+      this.loadEntry(entry, this.advanceClip());
+    };
+
+    // Timeout: if not ready after 8s, try a different clip
+    const timeout = setTimeout(() => {
+      if (!entry.ready) {
+        console.warn('Clip timed out, skipping:', url);
+        this.loadEntry(entry, this.advanceClip());
+      }
+    }, 8000);
+
+    const onReadyWithClear = () => {
+      clearTimeout(timeout);
+      onReady();
+    };
+
     if (url.endsWith('.m3u8') && Hls.isSupported()) {
       const hls = new Hls({ enableWorker: false, maxBufferLength: 10 });
       hls.loadSource(url);
@@ -105,7 +129,15 @@ export class VideoPlayer {
         if (video.duration > 2) {
           video.currentTime = Math.random() * (video.duration - 2);
         }
-        onReady();
+        onReadyWithClear();
+      });
+      hls.on(Hls.Events.ERROR, (_event, data) => {
+        if (data.fatal) {
+          clearTimeout(timeout);
+          hls.destroy();
+          entry.hls = null;
+          onError();
+        }
       });
       entry.hls = hls;
     } else if (url.endsWith('.m3u8') && video.canPlayType('application/vnd.apple.mpegurl')) {
@@ -115,8 +147,9 @@ export class VideoPlayer {
         if (video.duration > 2) {
           video.currentTime = Math.random() * (video.duration - 2);
         }
-        onReady();
+        onReadyWithClear();
       }, { once: true });
+      video.addEventListener('error', () => { clearTimeout(timeout); onError(); }, { once: true });
     } else {
       video.src = url;
       video.load();
@@ -124,8 +157,9 @@ export class VideoPlayer {
         if (video.duration > 2) {
           video.currentTime = Math.random() * (video.duration - 2);
         }
-        onReady();
+        onReadyWithClear();
       }, { once: true });
+      video.addEventListener('error', () => { clearTimeout(timeout); onError(); }, { once: true });
     }
   }
 
@@ -190,11 +224,21 @@ export class VideoPlayer {
 
   private swap() {
     const current = this.pool[this.activeIndex];
-    const nextIndex = (this.activeIndex + 1) % this.poolSize;
-    const next = this.pool[nextIndex];
 
-    // Hide current, show next (only if it's ready — otherwise skip this cut)
-    if (!next.ready) return;
+    // Find the next ready entry (prefer sequential, but search whole pool)
+    let nextIndex = -1;
+    for (let offset = 1; offset < this.poolSize; offset++) {
+      const idx = (this.activeIndex + offset) % this.poolSize;
+      if (this.pool[idx].ready) {
+        nextIndex = idx;
+        break;
+      }
+    }
+
+    // No ready entries — skip this cut
+    if (nextIndex === -1) return;
+
+    const next = this.pool[nextIndex];
 
     current.video.style.visibility = 'hidden';
     next.video.style.visibility = 'visible';

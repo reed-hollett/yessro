@@ -25,9 +25,9 @@ const BAYER8 = [
   42/64,  26/64,  38/64,  22/64,  41/64,  25/64,  37/64,  21/64,
 ];
 
-type DitherMode = 'flat' | 'warp' | 'mask' | 'grid';
+type DitherMode = 'flat' | 'warp' | 'mask' | 'grid' | 'sphere';
 type ShapeMode = 'tall-rect' | 'cross' | 'circle';
-const DITHER_MODES: DitherMode[] = ['flat', 'warp', 'mask', 'grid'];
+const DITHER_MODES: DitherMode[] = ['flat', 'warp', 'mask', 'grid', 'sphere'];
 const SHAPE_MODES: ShapeMode[] = ['tall-rect', 'cross', 'circle'];
 
 export class DitherOverlay {
@@ -54,12 +54,18 @@ export class DitherOverlay {
   private warpFocusY = 0.5;
   private warpStrength = 0.5;
 
-  // Mask params
+  // Mask params (for mask mode — sparser)
   private masks: Path2D[] = [];
+
+  // Knockout clip — always applied so dither never fills the full pane
+  private knockoutClip: Path2D | null = null;
 
   // Grid params
   private gridCols = 2;
   private gridRows = 2;
+
+  // Sphere params
+  private sphereCount = 3;
 
   // Side: dither on left or right (randomized per swap)
   private ditherOnLeft = false;
@@ -111,6 +117,9 @@ export class DitherOverlay {
     const ch = this.container.clientHeight;
     const hw = Math.floor(cw / 2);
 
+    // Always generate a knockout clip so there's black mixed in
+    this.generateKnockout(hw, ch);
+
     if (this.mode === 'warp') {
       this.warpFocusX = 0.2 + Math.random() * 0.6;
       this.warpFocusY = 0.2 + Math.random() * 0.6;
@@ -122,6 +131,9 @@ export class DitherOverlay {
     if (this.mode === 'grid') {
       this.gridCols = 2 + Math.floor(Math.random() * 2); // 2–3
       this.gridRows = 2 + Math.floor(Math.random() * 2); // 2–3
+    }
+    if (this.mode === 'sphere') {
+      this.sphereCount = 2 + Math.floor(Math.random() * 3); // 2–4
     }
   }
 
@@ -177,7 +189,8 @@ export class DitherOverlay {
       else h = ((r - g) / delta + 4) / 6;
     }
 
-    // Neon boost
+    // Complementary hue (opposite side of the wheel) + neon boost
+    h = (h + 0.5) % 1;
     const boostedS = 1.0;
     const boostedL = Math.max(0.5, Math.min(0.65, l * 0.8 + 0.35));
 
@@ -216,6 +229,22 @@ export class DitherOverlay {
       path.rect(x, y, w, h);
       this.masks.push(path);
     }
+  }
+
+  // ─── Knockout generation (always applied) ──────────────────────
+
+  private generateKnockout(hw: number, ch: number) {
+    const clip = new Path2D();
+    // 3–6 random rectangles covering ~50–75% of the pane
+    const count = 3 + Math.floor(Math.random() * 4);
+    for (let i = 0; i < count; i++) {
+      const w = hw * (0.25 + Math.random() * 0.55);
+      const h = ch * (0.2 + Math.random() * 0.5);
+      const x = Math.random() * (hw - w * 0.5) - w * 0.1;
+      const y = Math.random() * (ch - h * 0.5) - h * 0.1;
+      clip.rect(x, y, w, h);
+    }
+    this.knockoutClip = clip;
   }
 
   // ─── Dither computation ──────────────────────────────────────
@@ -285,7 +314,11 @@ export class DitherOverlay {
 
       switch (this.mode) {
         case 'flat':
+          // Knockout clip only on flat mode so it's never a full pane
+          ctx.save();
+          if (this.knockoutClip) ctx.clip(this.knockoutClip);
           this.drawFlat(ctx, levels, ow, oh, hw, ch);
+          ctx.restore();
           break;
         case 'warp':
           this.drawWarp(ctx, levels, ow, oh, hw, ch);
@@ -295,6 +328,9 @@ export class DitherOverlay {
           break;
         case 'grid':
           this.drawGrid(ctx, levels, ow, oh, hw, ch);
+          break;
+        case 'sphere':
+          this.drawSphere(ctx, levels, ow, oh, hw, ch);
           break;
       }
     }
@@ -422,6 +458,76 @@ export class DitherOverlay {
         this.drawShapeBatch(ctx, midCoords, this.midColor, cellW, cellH, ox, oy);
         this.drawShapeBatch(ctx, whiteCoords, '#fff', cellW, cellH, ox, oy);
       }
+    }
+  }
+
+  // ─── Sphere mode (dither warped over stacked spheres) ───────
+
+  private drawSphere(
+    ctx: CanvasRenderingContext2D,
+    levels: Uint8Array, ow: number, oh: number,
+    hw: number, ch: number,
+  ) {
+    const count = this.sphereCount;
+    const gap = ch * 0.02;
+    const totalGap = gap * (count - 1);
+    const sphereH = (ch - totalGap) / count;
+    const radius = Math.min(hw, sphereH) / 2;
+
+    for (let s = 0; s < count; s++) {
+      const cx = hw / 2;
+      const cy = s * (sphereH + gap) + sphereH / 2;
+
+      // Each sphere samples a vertical slice of the dither data
+      const srcYStart = Math.floor((s / count) * oh);
+      const srcYEnd = Math.floor(((s + 1) / count) * oh);
+
+      for (let lv = 1; lv <= 2; lv++) {
+        ctx.fillStyle = lv === 1 ? this.midColor : '#fff';
+        ctx.beginPath();
+
+        for (let sy = srcYStart; sy < srcYEnd; sy++) {
+          for (let sx = 0; sx < ow; sx++) {
+            if (levels[sy * ow + sx] !== lv) continue;
+
+            // Normalize to -1..1 within this sphere's source region
+            const nx = (sx + 0.5) / ow * 2 - 1;
+            const ny = ((sy - srcYStart) + 0.5) / (srcYEnd - srcYStart) * 2 - 1;
+
+            // Discard points outside the unit circle
+            const r2 = nx * nx + ny * ny;
+            if (r2 > 1) continue;
+
+            // Spherical projection: map flat coords onto sphere surface
+            const z = Math.sqrt(1 - r2);
+            // Use longitude/latitude for texture mapping
+            const lon = Math.atan2(nx, z);
+            const lat = Math.asin(ny);
+
+            // Map back to screen coords with sphere distortion
+            const px = cx + lon / (Math.PI / 2) * radius;
+            const py = cy + lat / (Math.PI / 2) * radius;
+
+            // Cell size shrinks at sphere edges (foreshortening)
+            const cellScale = z;
+            const cellW = (hw / ow) * cellScale;
+            const cellH = (sphereH / (srcYEnd - srcYStart)) * cellScale;
+
+            this.addShape(ctx, px - cellW / 2, py - cellH / 2, cellW, cellH);
+          }
+        }
+        ctx.fill();
+      }
+
+      // Subtle sphere rim highlight
+      ctx.save();
+      ctx.strokeStyle = this.midColor;
+      ctx.globalAlpha = 0.15;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
     }
   }
 
