@@ -58,13 +58,14 @@ export class ThresholdOverlay {
     this.offscreen.height = Math.floor(qh * SAMPLE_SCALE);
   };
 
-  /** Randomize position within the viewport */
+  /** Randomize position within the video half only */
   shuffle() {
     const cw = this.container.clientWidth;
     const ch = this.container.clientHeight;
     const qw = Math.floor(cw / 2);
     const qh = Math.floor(ch / 2);
-    const maxX = cw - qw;
+    // Constrain to the video half (left 50% by default, CSS clip-path handles the rest)
+    const maxX = Math.max(0, Math.floor(cw / 2) - qw);
     const maxY = ch - qh;
     this.canvas.style.left = Math.floor(Math.random() * maxX) + 'px';
     this.canvas.style.top = Math.floor(Math.random() * maxY) + 'px';

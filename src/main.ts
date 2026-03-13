@@ -97,7 +97,7 @@ playBtn.addEventListener('click', async () => {
 
     // 5b. Initialize overlays
     const app = document.getElementById('app')!;
-    overlay = new TrackingOverlay(app);
+    overlay = new TrackingOverlay(app, players[0]);
     threshold = new ThresholdOverlay(app, players[0]);
     dither = new DitherOverlay(app, players[0]);
 

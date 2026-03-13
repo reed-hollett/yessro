@@ -113,10 +113,8 @@ html, body {
   position: absolute;
   top: 0;
   left: 0;
-  width: 50%;
   z-index: 50;
   pointer-events: none;
-  overflow: hidden;
 }
 
 .threshold-overlay {
@@ -250,7 +248,7 @@ html, body {
 }
 
 .pad-btn.active svg {
-  filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.6));
+  filter: none;
 }
 
 .pad-btn:active {
