@@ -10,8 +10,8 @@ import { initHeroDither } from './hero-dither';
 const heroCanvas = document.getElementById('hero-canvas') as HTMLCanvasElement;
 const playBtn = document.getElementById('play-btn')!;
 
-// Render hero dither immediately on page load
-initHeroDither(heroCanvas);
+// Render hero dither after layout is ready
+requestAnimationFrame(() => initHeroDither(heroCanvas));
 const loading = document.getElementById('loading')!;
 const transport = document.getElementById('transport')!;
 const transportPlaypause = document.getElementById('transport-playpause')!;

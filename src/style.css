@@ -76,18 +76,19 @@ html, body {
   transform: translate(-50%, -50%);
   z-index: 100;
   background: #000;
-  border: 1px solid #fff;
+  border: none;
   color: #fff;
   font-family: inherit;
   font-size: 0.85rem;
   letter-spacing: 0.3em;
   text-transform: uppercase;
-  padding: 0.6rem 1.4rem;
+  padding: 0.6rem 1.2rem;
   cursor: pointer;
 }
 
 #play-btn:hover {
-  opacity: 0.7;
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 #play-btn.hidden {
