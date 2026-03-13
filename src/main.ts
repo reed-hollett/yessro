@@ -4,10 +4,8 @@ import { detectBeats } from './beat-detect';
 import { VideoPlayer } from './player';
 import { TrackingOverlay } from './tracking-overlay';
 import { ThresholdOverlay } from './threshold-overlay';
+import { DitherOverlay } from './dither-overlay';
 
-import { TimecodeOverlay } from './timecode-overlay';
-import { MosaicOverlay } from './mosaic-overlay';
-import { ZoomOverlay } from './zoom-overlay';
 
 const playBtn = document.getElementById('play-btn')!;
 const loading = document.getElementById('loading')!;
@@ -23,10 +21,8 @@ const fxDialog = document.getElementById('fx-dialog')!;
 let players: VideoPlayer[] = [];
 let overlay: TrackingOverlay | null = null;
 let threshold: ThresholdOverlay | null = null;
+let dither: DitherOverlay | null = null;
 
-let timecode: TimecodeOverlay | null = null;
-let mosaic: MosaicOverlay | null = null;
-let zoom: ZoomOverlay | null = null;
 let paused = false;
 
 function formatTime(s: number): string {
@@ -36,10 +32,6 @@ function formatTime(s: number): string {
 }
 
 function getLaneCount(): number {
-  const w = window.innerWidth;
-  const ratio = w / window.innerHeight;
-  if (ratio >= 1.0 && w >= 1200) return 3;
-  if (ratio >= 1.0 && w >= 768) return 2;
   return 1;
 }
 
@@ -102,8 +94,7 @@ playBtn.addEventListener('click', async () => {
     const app = document.getElementById('app')!;
     overlay = new TrackingOverlay(app);
     threshold = new ThresholdOverlay(app, players[0]);
-    mosaic = new MosaicOverlay(app, players[0]);
-    zoom = new ZoomOverlay(app, players[0]);
+    dither = new DitherOverlay(app, players[0]);
 
     // Lane visibility & saturation: randomly hide lanes and add color
     const shuffleLaneVisibility = () => {
@@ -130,8 +121,7 @@ playBtn.addEventListener('click', async () => {
         if (i === 0) {
           overlay?.shuffle();
           threshold?.shuffle();
-          mosaic?.shuffle();
-          zoom?.shuffle();
+          dither?.shuffle();
         }
       };
     });
@@ -144,8 +134,6 @@ playBtn.addEventListener('click', async () => {
     source.connect(audioCtx.destination);
     const startTime = audioCtx.currentTime;
     source.start(startTime, 0, maxDuration);
-    timecode = new TimecodeOverlay(app, audioCtx, startTime);
-
     const duration = Math.min(audioBuffer.duration, maxDuration);
     transportDuration.textContent = formatTime(duration);
     transport.classList.add('visible');
@@ -188,10 +176,7 @@ playBtn.addEventListener('click', async () => {
       if (e.key === '1') toggleTrack();
       if (e.key === '2') toggleThresh();
       if (e.key === '3') toggleInvert();
-      if (e.key === '4') toggleTimecode();
-      if (e.key === '5') toggleMosaic();
-      if (e.key === '6') toggleMirror();
-      if (e.key === '7') toggleZoom();
+      if (e.key === '4') toggleDither();
     };
     window.addEventListener('keydown', handleKey);
 
@@ -224,34 +209,19 @@ playBtn.addEventListener('click', async () => {
       videoContainer.classList.toggle('invert');
       sidebarBtns[2].classList.toggle('active');
     };
-    const toggleTimecode = () => {
-      timecode?.toggle();
+    const toggleDither = () => {
+      dither?.toggle();
       sidebarBtns[3].classList.toggle('active');
     };
-    const toggleMosaic = () => {
-      mosaic?.toggle();
-      sidebarBtns[4].classList.toggle('active');
-    };
-    const toggleMirror = () => {
-      videoContainer.classList.toggle('mirror');
-      sidebarBtns[5].classList.toggle('active');
-    };
-    const toggleZoom = () => {
-      zoom?.toggle();
-      sidebarBtns[6].classList.toggle('active');
-    };
-
     sidebarBtns[0].onclick = toggleTrack;
     sidebarBtns[1].onclick = toggleThresh;
     sidebarBtns[2].onclick = toggleInvert;
-    sidebarBtns[3].onclick = toggleTimecode;
-    sidebarBtns[4].onclick = toggleMosaic;
-    sidebarBtns[5].onclick = toggleMirror;
-    sidebarBtns[6].onclick = toggleZoom;
+    sidebarBtns[3].onclick = toggleDither;
 
-    // Default on: tracking (1), threshold (2)
+    // Default on: tracking (1), threshold (2), dither (4)
     toggleTrack();
     toggleThresh();
+    toggleDither();
 
     // Stop everything when song ends
     source.onended = () => {
@@ -259,15 +229,11 @@ playBtn.addEventListener('click', async () => {
       players.forEach(p => p.stop());
       overlay?.destroy();
       threshold?.destroy();
-      timecode?.destroy();
-      mosaic?.destroy();
-      zoom?.destroy();
+      dither?.destroy();
       overlay = null;
       threshold = null;
-      timecode = null;
-      mosaic = null;
-      zoom = null;
-      videoContainer.classList.remove('invert', 'mirror');
+      dither = null;
+      videoContainer.classList.remove('invert');
       window.removeEventListener('keydown', handleKey);
       sidebar.classList.remove('visible');
       sidebarBtns.forEach(b => { b.classList.remove('active'); b.onclick = null; });

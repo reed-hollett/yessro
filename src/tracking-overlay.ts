@@ -42,6 +42,7 @@ const DRIFT_INTERVAL = 90;
 export class TrackingOverlay {
   private canvas: HTMLCanvasElement;
   private ctx: CanvasRenderingContext2D;
+  private container: HTMLElement;
   private boxes: TrackingBox[] = [];
   private crosshairs: Crosshair[] = [];
   private visible = false;
@@ -49,6 +50,7 @@ export class TrackingOverlay {
   private running = false;
 
   constructor(container: HTMLElement) {
+    this.container = container;
     this.canvas = document.createElement('canvas');
     this.canvas.className = 'tracking-overlay';
     this.canvas.style.display = 'none';
@@ -59,12 +61,18 @@ export class TrackingOverlay {
     window.addEventListener('resize', this.resize);
   }
 
+  /** Use container dims so it stays within #app (square on mobile) */
+  private get vw() { return this.container.clientWidth; }
+  private get vh() { return this.container.clientHeight; }
+
   private resize = () => {
     const dpr = window.devicePixelRatio || 1;
-    this.canvas.width = window.innerWidth * dpr;
-    this.canvas.height = window.innerHeight * dpr;
-    this.canvas.style.width = window.innerWidth + 'px';
-    this.canvas.style.height = window.innerHeight + 'px';
+    const vw = this.vw;
+    const vh = this.vh;
+    this.canvas.width = vw * dpr;
+    this.canvas.height = vh * dpr;
+    this.canvas.style.width = vw + 'px';
+    this.canvas.style.height = vh + 'px';
     this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   };
 
@@ -72,8 +80,8 @@ export class TrackingOverlay {
   init() {
     this.boxes = [];
     this.crosshairs = [];
-    const vw = window.innerWidth;
-    const vh = window.innerHeight;
+    const vw = this.vw;
+    const vh = this.vh;
 
     for (let i = 0; i < BOX_COUNT; i++) {
       const w = 80 + Math.random() * 200;
@@ -114,8 +122,8 @@ export class TrackingOverlay {
 
   /** Call on each beat-cut to reposition elements */
   shuffle() {
-    const vw = window.innerWidth;
-    const vh = window.innerHeight;
+    const vw = this.vw;
+    const vh = this.vh;
 
     for (const box of this.boxes) {
       box.tw = 80 + Math.random() * 200;
@@ -158,8 +166,8 @@ export class TrackingOverlay {
     if (!this.running) return;
 
     const ctx = this.ctx;
-    const vw = window.innerWidth;
-    const vh = window.innerHeight;
+    const vw = this.vw;
+    const vh = this.vh;
     ctx.clearRect(0, 0, vw, vh);
 
     // Tick drift — pick new nearby waypoints when countdown expires

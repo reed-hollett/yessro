@@ -18,12 +18,14 @@ export class ThresholdOverlay {
   private offscreen: HTMLCanvasElement;
   private offCtx: CanvasRenderingContext2D;
   private player: VideoPlayer;
+  private container: HTMLElement;
   private visible = false;
   private rafId = 0;
   private running = false;
 
   constructor(container: HTMLElement, player: VideoPlayer) {
     this.player = player;
+    this.container = container;
 
     this.canvas = document.createElement('canvas');
     this.canvas.className = 'threshold-overlay';
@@ -41,8 +43,10 @@ export class ThresholdOverlay {
 
   private resize = () => {
     const dpr = window.devicePixelRatio || 1;
-    const qw = Math.floor(window.innerWidth / 2);
-    const qh = Math.floor(window.innerHeight / 2);
+    const cw = this.container.clientWidth;
+    const ch = this.container.clientHeight;
+    const qw = Math.floor(cw / 2);
+    const qh = Math.floor(ch / 2);
 
     this.canvas.width = qw * dpr;
     this.canvas.height = qh * dpr;
@@ -56,10 +60,12 @@ export class ThresholdOverlay {
 
   /** Randomize position within the viewport */
   shuffle() {
-    const qw = Math.floor(window.innerWidth / 2);
-    const qh = Math.floor(window.innerHeight / 2);
-    const maxX = window.innerWidth - qw;
-    const maxY = window.innerHeight - qh;
+    const cw = this.container.clientWidth;
+    const ch = this.container.clientHeight;
+    const qw = Math.floor(cw / 2);
+    const qh = Math.floor(ch / 2);
+    const maxX = cw - qw;
+    const maxY = ch - qh;
     this.canvas.style.left = Math.floor(Math.random() * maxX) + 'px';
     this.canvas.style.top = Math.floor(Math.random() * maxY) + 'px';
   }
