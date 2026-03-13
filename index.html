@@ -7,21 +7,26 @@
   </head>
   <body>
     <div id="app">
+      <canvas id="hero-canvas"></canvas>
       <div id="video-container"></div>
       <button id="play-btn">Play</button>
       <div id="loading"></div>
-      <div id="sidebar">
-        <button class="sidebar-btn" data-action="track" aria-label="Tracking overlay">
+      <div id="fx-pad">
+        <button class="pad-btn" data-action="track" aria-label="Tracking overlay">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 8V2h6"/><path d="M22 8V2h-6"/><path d="M2 16v6h6"/><path d="M22 16v6h-6"/><circle cx="12" cy="12" r="3"/></svg>
+          <span>TRACK</span>
         </button>
-        <button class="sidebar-btn" data-action="threshold" aria-label="Threshold overlay">
+        <button class="pad-btn" data-action="threshold" aria-label="Threshold overlay">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 0 1 0 20" fill="currentColor"/></svg>
+          <span>THRESH</span>
         </button>
-        <button class="sidebar-btn" data-action="invert" aria-label="Invert colors">
+        <button class="pad-btn" data-action="invert" aria-label="Invert colors">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="3" x2="21" y2="21"/></svg>
+          <span>INVERT</span>
         </button>
-        <button class="sidebar-btn" data-action="dither" aria-label="Dither overlay">
+        <button class="pad-btn" data-action="dither" aria-label="Dither overlay">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="4" height="4"/><rect x="11" y="3" width="4" height="4"/><rect x="7" y="7" width="4" height="4"/><rect x="3" y="11" width="4" height="4"/><rect x="11" y="11" width="4" height="4"/><rect x="17" y="7" width="4" height="4"/><rect x="7" y="17" width="4" height="4"/><rect x="17" y="17" width="4" height="4"/></svg>
+          <span>DITHER</span>
         </button>
       </div>
       <div id="transport">

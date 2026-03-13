@@ -5,9 +5,13 @@ import { VideoPlayer } from './player';
 import { TrackingOverlay } from './tracking-overlay';
 import { ThresholdOverlay } from './threshold-overlay';
 import { DitherOverlay } from './dither-overlay';
+import { initHeroDither } from './hero-dither';
 
-
+const heroCanvas = document.getElementById('hero-canvas') as HTMLCanvasElement;
 const playBtn = document.getElementById('play-btn')!;
+
+// Render hero dither immediately on page load
+initHeroDither(heroCanvas);
 const loading = document.getElementById('loading')!;
 const transport = document.getElementById('transport')!;
 const transportPlaypause = document.getElementById('transport-playpause')!;
@@ -37,6 +41,7 @@ function getLaneCount(): number {
 
 playBtn.addEventListener('click', async () => {
   playBtn.classList.add('hidden');
+  heroCanvas.classList.add('hidden');
   loading.style.display = 'block';
 
   try {
@@ -180,43 +185,36 @@ playBtn.addEventListener('click', async () => {
     };
     window.addEventListener('keydown', handleKey);
 
-    // Sidebar toggle helpers
-    const sidebar = document.getElementById('sidebar')!;
-    const sidebarBtns = sidebar.querySelectorAll<HTMLButtonElement>('.sidebar-btn');
+    // FX pad (mobile) + FX dialog (desktop)
+    const fxPad = document.getElementById('fx-pad')!;
+    const padBtns = fxPad.querySelectorAll<HTMLButtonElement>('.pad-btn');
 
-    // FX button: sidebar on mobile, keyboard dialog on desktop
-    const isMobile = () => window.innerWidth < 769;
+    // FX button: keyboard dialog on desktop only
     transportFx.onclick = () => {
-      if (isMobile()) {
-        sidebar.classList.toggle('visible');
-        fxDialog.classList.remove('visible');
-      } else {
-        fxDialog.classList.toggle('visible');
-        sidebar.classList.remove('visible');
-      }
+      fxDialog.classList.toggle('visible');
       transportFx.classList.toggle('active');
     };
 
     const toggleTrack = () => {
       overlay?.toggle();
-      sidebarBtns[0].classList.toggle('active');
+      padBtns[0].classList.toggle('active');
     };
     const toggleThresh = () => {
       threshold?.toggle();
-      sidebarBtns[1].classList.toggle('active');
+      padBtns[1].classList.toggle('active');
     };
     const toggleInvert = () => {
       videoContainer.classList.toggle('invert');
-      sidebarBtns[2].classList.toggle('active');
+      padBtns[2].classList.toggle('active');
     };
     const toggleDither = () => {
       dither?.toggle();
-      sidebarBtns[3].classList.toggle('active');
+      padBtns[3].classList.toggle('active');
     };
-    sidebarBtns[0].onclick = toggleTrack;
-    sidebarBtns[1].onclick = toggleThresh;
-    sidebarBtns[2].onclick = toggleInvert;
-    sidebarBtns[3].onclick = toggleDither;
+    padBtns[0].onclick = toggleTrack;
+    padBtns[1].onclick = toggleThresh;
+    padBtns[2].onclick = toggleInvert;
+    padBtns[3].onclick = toggleDither;
 
     // Default on: tracking (1), threshold (2), dither (4)
     toggleTrack();
@@ -235,8 +233,7 @@ playBtn.addEventListener('click', async () => {
       dither = null;
       videoContainer.classList.remove('invert');
       window.removeEventListener('keydown', handleKey);
-      sidebar.classList.remove('visible');
-      sidebarBtns.forEach(b => { b.classList.remove('active'); b.onclick = null; });
+      padBtns.forEach(b => { b.classList.remove('active'); b.onclick = null; });
       transportFx.classList.remove('active');
       transportFx.onclick = null;
       fxDialog.classList.remove('visible');
@@ -244,6 +241,8 @@ playBtn.addEventListener('click', async () => {
       transportPlaypause.onclick = null;
       playBtn.classList.remove('hidden');
       playBtn.textContent = 'Replay';
+      heroCanvas.classList.remove('hidden');
+      initHeroDither(heroCanvas);
     };
 
     // 7. Start beat-synced video loop

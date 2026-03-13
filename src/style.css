@@ -19,13 +19,12 @@ html, body {
   overflow: hidden;
 }
 
-/* Square canvas on mobile so panes aren't too stretched */
+/* Instagram 4:5 on mobile, pad fills remaining space below */
 @media (max-width: 768px) {
   #app {
     width: 100vw;
-    height: 100vw;
-    top: 50%;
-    transform: translateY(-50%);
+    height: calc(100vw * 5 / 4);
+    top: 0;
   }
 }
 
@@ -56,23 +55,35 @@ html, body {
   object-fit: cover;
 }
 
+#hero-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 90;
+  pointer-events: none;
+}
+
+#hero-canvas.hidden {
+  display: none;
+}
+
 #play-btn {
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
   z-index: 100;
-  background: none;
-  border: none;
+  background: #000;
+  border: 1px solid #fff;
   color: #fff;
   font-family: inherit;
   font-size: 0.85rem;
   letter-spacing: 0.3em;
   text-transform: uppercase;
-  padding: 0;
-  padding-bottom: 2px;
+  padding: 0.6rem 1.4rem;
   cursor: pointer;
-  border-bottom: 1px solid #fff;
 }
 
 #play-btn:hover {
@@ -184,53 +195,65 @@ html, body {
   border-radius: 3px;
 }
 
-/* TikTok/Reels-style sidebar toggles */
-#sidebar {
-  position: fixed;
-  right: 0.75rem;
-  bottom: 4.5rem;
-  z-index: 150;
+/* ─── MIDI-style FX pad (mobile only) ─────────────────────── */
+#fx-pad {
   display: none;
-  flex-direction: column;
-  align-items: center;
-  gap: 1.25rem;
 }
 
-#sidebar.visible {
-  display: flex;
+@media (max-width: 768px) {
+  #fx-pad {
+    position: fixed;
+    /* Sits right below the 4:5 canvas */
+    top: calc(100vw * 5 / 4);
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 150;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1px;
+    background: rgba(255, 255, 255, 0.06);
+  }
 }
 
-.sidebar-btn {
+.pad-btn {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.25rem;
-  background: none;
+  justify-content: center;
+  gap: 0.4rem;
+  background: #000;
   border: none;
-  color: #fff;
+  color: rgba(255, 255, 255, 0.35);
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
-  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.6));
+  transition: background 0.08s, color 0.08s;
+  user-select: none;
 }
 
-.sidebar-btn svg {
-  width: 28px;
-  height: 28px;
+.pad-btn svg {
+  width: 24px;
+  height: 24px;
 }
 
-.sidebar-btn.active {
+.pad-btn span {
+  font-family: inherit;
+  font-size: 0.55rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+.pad-btn.active {
+  background: rgba(255, 255, 255, 0.08);
   color: #fff;
 }
 
-.sidebar-btn.active svg {
-  filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.8));
+.pad-btn.active svg {
+  filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.6));
 }
 
-/* Hide sidebar on desktop — keyboard shortcuts are enough */
-@media (min-width: 769px) {
-  #sidebar {
-    display: none !important;
-  }
+.pad-btn:active {
+  background: rgba(255, 255, 255, 0.15);
 }
 
 #transport {
@@ -335,10 +358,13 @@ html, body {
   white-space: nowrap;
 }
 
-/* Only show dialog on desktop */
+/* Only show dialog/FX button on desktop */
 @media (max-width: 768px) {
   #fx-dialog {
     display: none !important;
+  }
+  #transport-fx {
+    display: none;
   }
 }
 
